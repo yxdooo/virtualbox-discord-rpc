@@ -60,12 +60,16 @@ def main() -> None:
         help="Remove application from Windows startup.",
     )
     parser.add_argument(
+        "--no-tray",
+        action="store_true",
+        help="Disable system tray icon and run as a pure CLI/console process.",
+    )
+    parser.add_argument(
         "-v",
         "--version",
         action="version",
         version=f"%(prog)s {__version__}",
     )
-
 
     args = parser.parse_args()
 
@@ -95,7 +99,6 @@ def main() -> None:
 
     service = VirtualBoxRPC(config)
 
-
     if args.once:
         payload = service.sync_once()
         if payload:
@@ -104,7 +107,20 @@ def main() -> None:
             print("VirtualBox is not currently active.")
         sys.exit(0)
 
+    if not args.no_tray:
+        try:
+            from .tray import is_tray_supported, run_with_tray
+
+            if is_tray_supported():
+                run_with_tray(service)
+                sys.exit(0)
+        except Exception as exc:
+            logging.getLogger("virtualbox_rpc").debug(
+                "System tray initialization skipped: %s", exc
+            )
+
     service.run()
+
 
 
 if __name__ == "__main__":

@@ -131,6 +131,22 @@ class VirtualBoxRPC:
         self.manager_start_time: int | None = None
         self.vm_start_times: dict[str, int] = {}
         self.last_state_hash: tuple[str, str] | None = None
+        self.paused: bool = False
+        self.status_text: str = "Idle"
+
+    def stop(self) -> None:
+        """Stops the presence loop and disconnects."""
+        self.running = False
+        self.disconnect()
+
+    def toggle_pause(self) -> bool:
+        """Toggles presence pausing. Returns current paused state."""
+        self.paused = not self.paused
+        if self.paused and self.connected:
+            self.disconnect()
+            self.status_text = "Paused"
+        logger.info("Presence paused state set to: %s", self.paused)
+        return self.paused
 
     def connect(self) -> bool:
         """Establishes an IPC connection with the local Discord client."""
@@ -184,13 +200,19 @@ class VirtualBoxRPC:
 
     def _sync_presence(self) -> None:
         """Evaluates VirtualBox state and updates the Discord presence payload."""
+        if self.paused:
+            self.status_text = "Paused"
+            return
+
         if not is_virtualbox_active():
+            self.status_text = "VirtualBox inactive"
             if self.connected:
                 self.disconnect()
             return
 
         if not self.connected:
             if not self.connect():
+                self.status_text = "Connecting to Discord..."
                 return
             self.manager_start_time = int(time.time())
 
@@ -209,6 +231,13 @@ class VirtualBoxRPC:
         vm_specs_map = {}
         for name in running_vms:
             vm_specs_map[name] = get_vm_specs(self.vboxmanage, name)
+
+        if not running_vms:
+            self.status_text = "Manager active"
+        elif len(running_vms) == 1:
+            self.status_text = f"Running: {running_vms[0]}"
+        else:
+            self.status_text = f"Running {len(running_vms)} VMs"
 
         payload = build_presence_payload(
             running_vms=running_vms,
@@ -233,12 +262,14 @@ class VirtualBoxRPC:
 
         def _handle_exit(sig, frame):
             logger.info("Shutdown signal received (%s). Exiting.", sig)
-            self.running = False
-            self.disconnect()
+            self.stop()
             sys.exit(0)
 
-        signal.signal(signal.SIGINT, _handle_exit)
-        signal.signal(signal.SIGTERM, _handle_exit)
+        try:
+            signal.signal(signal.SIGINT, _handle_exit)
+            signal.signal(signal.SIGTERM, _handle_exit)
+        except (ValueError, AttributeError):
+            pass
 
         logger.info(
             "Service started. Polling every %ds (VBoxManage: %s)",
@@ -256,8 +287,13 @@ class VirtualBoxRPC:
                         self.rpc.close()
                     except Exception:
                         pass
-                self.rpc = None
+                    self.rpc = None
                 self.connected = False
                 self.last_state_hash = None
 
-            time.sleep(self.config.polling_interval)
+            sleep_elapsed = 0.0
+            interval = max(0.5, float(self.config.polling_interval))
+            while self.running and sleep_elapsed < interval:
+                time.sleep(0.2)
+                sleep_elapsed += 0.2
+
