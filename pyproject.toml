@@ -8,7 +8,7 @@ version = "1.0.0"
 description = "Discord Rich Presence client for Oracle VM VirtualBox"
 readme = "README.md"
 requires-python = ">=3.8"
-license = { text = "MIT" }
+license = "MIT"
 authors = [
     { name = "yxdooo" }
 ]
@@ -17,10 +17,10 @@ classifiers = [
     "Environment :: Win32 (MS Windows)",
     "Environment :: X11 Applications",
     "Intended Audience :: End Users/Desktop",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX :: Linux",
     "Operating System :: MacOS",
+
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
@@ -55,7 +55,11 @@ dev = [
 [project.scripts]
 virtualbox-rpc = "virtualbox_rpc.__main__:main"
 
+[tool.setuptools.packages.find]
+include = ["virtualbox_rpc*"]
+
 [tool.ruff]
+
 line-length = 100
 target-version = "py39"
 
