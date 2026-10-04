@@ -50,11 +50,22 @@ def main() -> None:
         help="Run a single sync check and exit.",
     )
     parser.add_argument(
+        "--install-startup",
+        action="store_true",
+        help="Register application to run on Windows startup.",
+    )
+    parser.add_argument(
+        "--uninstall-startup",
+        action="store_true",
+        help="Remove application from Windows startup.",
+    )
+    parser.add_argument(
         "-v",
         "--version",
         action="version",
         version=f"%(prog)s {__version__}",
     )
+
 
     args = parser.parse_args()
 
@@ -62,7 +73,28 @@ def main() -> None:
     log_level = "DEBUG" if args.debug else config.log_level
     setup_logging(log_level, config.log_file)
 
+    if args.install_startup:
+        from .startup import register_startup
+
+        if register_startup():
+            print("Successfully registered VirtualBox Discord RPC for Windows startup.")
+            sys.exit(0)
+        else:
+            print("Failed to register Windows startup entry.", file=sys.stderr)
+            sys.exit(1)
+
+    if args.uninstall_startup:
+        from .startup import unregister_startup
+
+        if unregister_startup():
+            print("Successfully removed VirtualBox Discord RPC from Windows startup.")
+            sys.exit(0)
+        else:
+            print("Failed to remove Windows startup entry.", file=sys.stderr)
+            sys.exit(1)
+
     service = VirtualBoxRPC(config)
+
 
     if args.once:
         payload = service.sync_once()
