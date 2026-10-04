@@ -15,6 +15,12 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("virtualbox_rpc")
 
+# Prevent Xlib DisplayNameError on headless Linux environments
+if sys.platform.startswith("linux") and not (
+    os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")
+):
+    os.environ.setdefault("PYSTRAY_BACKEND", "dummy")
+
 
 def is_tray_supported() -> bool:
     """Checks whether system tray dependencies and display environment are available."""

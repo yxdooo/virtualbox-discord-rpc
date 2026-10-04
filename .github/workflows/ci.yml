@@ -37,5 +37,8 @@ jobs:
           ruff format --check .
 
       - name: Run test suite (pytest)
+        env:
+          PYSTRAY_BACKEND: dummy
         run: |
           pytest --cov=virtualbox_rpc --cov-report=term-missing
+

@@ -1,7 +1,12 @@
-from __future__ import annotations
-
+import os
 import sys
 from unittest.mock import MagicMock, patch
+
+# Prevent Xlib DisplayNameError on headless test runners
+if sys.platform.startswith("linux") and not (
+    os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")
+):
+    os.environ.setdefault("PYSTRAY_BACKEND", "dummy")
 
 from virtualbox_rpc.client import VirtualBoxRPC
 from virtualbox_rpc.config import Config
@@ -36,24 +41,10 @@ def test_is_tray_supported_missing_dependency():
         assert is_tray_supported() is False
 
 
-def test_create_tray_icon_and_callbacks(monkeypatch):
+def test_create_tray_icon_and_callbacks():
     cfg = Config()
     service = VirtualBoxRPC(cfg)
     service.status_text = "Running 1 VM"
-
-    if not is_tray_supported():
-
-        class MockIcon:
-            def __init__(self, name, icon, title=None, menu=None):
-                self.name = name
-                self.icon = icon
-                self.title = title
-                self.menu = menu
-
-            def stop(self):
-                pass
-
-        monkeypatch.setattr("pystray.Icon", MockIcon)
 
     icon = create_tray_icon(service)
     assert icon is not None
