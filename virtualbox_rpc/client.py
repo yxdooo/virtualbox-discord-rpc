@@ -34,9 +34,7 @@ def build_presence_payload(
             "start": manager_start_time or int(time.time()),
             "large_image": DEFAULT_LARGE_IMAGE_URL,
             "large_text": "Oracle VM VirtualBox",
-            "buttons": [
-                {"label": "VirtualBox Website", "url": "https://www.virtualbox.org/"}
-            ],
+            "buttons": [{"label": "VirtualBox Website", "url": "https://www.virtualbox.org/"}],
         }
 
     if len(running_vms) == 1:
@@ -59,9 +57,7 @@ def build_presence_payload(
         state = vm_info.get("state", "running")
 
         include_specs = (
-            config.show_hardware_specs
-            and not config.privacy.hide_hardware_specs
-            and bool(specs)
+            config.show_hardware_specs and not config.privacy.hide_hardware_specs and bool(specs)
         )
 
         if state == "paused":
@@ -84,9 +80,7 @@ def build_presence_payload(
             "large_text": "Oracle VM VirtualBox",
             "small_image": icon_url,
             "small_text": ostype[:128],
-            "buttons": [
-                {"label": "VirtualBox Website", "url": "https://www.virtualbox.org/"}
-            ],
+            "buttons": [{"label": "VirtualBox Website", "url": "https://www.virtualbox.org/"}],
         }
 
     # Multiple active VMs
@@ -112,9 +106,7 @@ def build_presence_payload(
         "large_text": "Oracle VM VirtualBox",
         "small_image": OS_ICONS["linux"],
         "small_text": "Multiple VMs Active",
-        "buttons": [
-            {"label": "VirtualBox Website", "url": "https://www.virtualbox.org/"}
-        ],
+        "buttons": [{"label": "VirtualBox Website", "url": "https://www.virtualbox.org/"}],
     }
 
 
@@ -296,4 +288,3 @@ class VirtualBoxRPC:
             while self.running and sleep_elapsed < interval:
                 time.sleep(0.2)
                 sleep_elapsed += 0.2
-

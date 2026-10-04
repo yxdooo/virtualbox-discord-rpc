@@ -38,14 +38,14 @@ def test_startup_registration_mocked(monkeypatch):
 
     with patch.dict(sys.modules, {"winreg": mock_winreg}):
         # Test registration
-        success = register_startup('test_cmd')
+        success = register_startup("test_cmd")
         assert success is True
         mock_winreg.SetValueEx.assert_called_with(
-            mock_key, APP_NAME, 0, mock_winreg.REG_SZ, 'test_cmd'
+            mock_key, APP_NAME, 0, mock_winreg.REG_SZ, "test_cmd"
         )
 
         # Test query
-        mock_winreg.QueryValueEx.return_value = ('test_cmd', 1)
+        mock_winreg.QueryValueEx.return_value = ("test_cmd", 1)
         assert is_startup_registered() is True
 
         # Test unregistration

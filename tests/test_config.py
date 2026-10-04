@@ -67,4 +67,3 @@ def test_config_privacy_and_overrides(tmp_path):
     assert "SecretVM" in cfg.vm_overrides
     assert cfg.vm_overrides["SecretVM"].display_name == "Redacted Lab"
     assert cfg.vm_overrides["SecretVM"].icon == "arch"
-

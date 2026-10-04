@@ -34,9 +34,7 @@ def is_startup_registered() -> bool:
     import winreg
 
     try:
-        with winreg.OpenKey(
-            winreg.HKEY_CURRENT_USER, REG_SUBKEY, 0, winreg.KEY_READ
-        ) as key:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, REG_SUBKEY, 0, winreg.KEY_READ) as key:
             winreg.QueryValueEx(key, APP_NAME)
             return True
     except (FileNotFoundError, OSError):
@@ -53,9 +51,7 @@ def register_startup(command: str | None = None) -> bool:
 
     cmd = command or get_startup_command()
     try:
-        with winreg.OpenKey(
-            winreg.HKEY_CURRENT_USER, REG_SUBKEY, 0, winreg.KEY_SET_VALUE
-        ) as key:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, REG_SUBKEY, 0, winreg.KEY_SET_VALUE) as key:
             winreg.SetValueEx(key, APP_NAME, 0, winreg.REG_SZ, cmd)
             logger.info("Successfully registered startup entry: %s", cmd)
             return True
@@ -73,9 +69,7 @@ def unregister_startup() -> bool:
     import winreg
 
     try:
-        with winreg.OpenKey(
-            winreg.HKEY_CURRENT_USER, REG_SUBKEY, 0, winreg.KEY_SET_VALUE
-        ) as key:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, REG_SUBKEY, 0, winreg.KEY_SET_VALUE) as key:
             winreg.DeleteValue(key, APP_NAME)
             logger.info("Successfully removed startup entry for %s", APP_NAME)
             return True

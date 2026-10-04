@@ -76,7 +76,9 @@ class Config:
                     if isinstance(privacy_data, dict):
                         config.privacy = PrivacyConfig(
                             hide_vm_name=bool(privacy_data.get("hide_vm_name", False)),
-                            hide_hardware_specs=bool(privacy_data.get("hide_hardware_specs", False)),
+                            hide_hardware_specs=bool(
+                                privacy_data.get("hide_hardware_specs", False)
+                            ),
                         )
 
                     overrides_data = data.get("vm_overrides", {})

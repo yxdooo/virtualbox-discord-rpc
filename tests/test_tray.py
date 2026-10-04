@@ -60,7 +60,6 @@ def test_create_tray_icon_and_callbacks():
     assert service.paused is True
     assert "Resume" in str(pause_item.text)
 
-
     # Exit item
     exit_item = menu_items[-1]
     with patch.object(service, "stop") as mock_stop, patch.object(icon, "stop") as mock_icon_stop:

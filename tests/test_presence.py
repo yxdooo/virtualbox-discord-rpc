@@ -138,9 +138,7 @@ def test_build_presence_vm_overrides():
     from virtualbox_rpc.config import VmOverride
 
     cfg = Config()
-    cfg.vm_overrides = {
-        "lab_vm": VmOverride(display_name="Security Sandbox", icon="arch")
-    }
+    cfg.vm_overrides = {"lab_vm": VmOverride(display_name="Security Sandbox", icon="arch")}
 
     specs = {
         "lab_vm": {
@@ -161,5 +159,3 @@ def test_build_presence_vm_overrides():
     from virtualbox_rpc.config import OS_ICONS
 
     assert payload["small_image"] == OS_ICONS["arch"]
-
-

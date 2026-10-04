@@ -115,12 +115,9 @@ def main() -> None:
                 run_with_tray(service)
                 sys.exit(0)
         except Exception as exc:
-            logging.getLogger("virtualbox_rpc").debug(
-                "System tray initialization skipped: %s", exc
-            )
+            logging.getLogger("virtualbox_rpc").debug("System tray initialization skipped: %s", exc)
 
     service.run()
-
 
 
 if __name__ == "__main__":
