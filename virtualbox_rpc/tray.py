@@ -18,16 +18,16 @@ logger = logging.getLogger("virtualbox_rpc")
 
 def is_tray_supported() -> bool:
     """Checks whether system tray dependencies and display environment are available."""
-    try:
-        import PIL  # noqa: F401
-        import pystray  # noqa: F401
-    except ImportError:
-        return False
-
     if sys.platform.startswith("linux"):
         # Requires an active X11 or Wayland display session
         if not (os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")):
             return False
+
+    try:
+        import PIL  # noqa: F401
+        import pystray  # noqa: F401
+    except Exception:
+        return False
 
     return True
 
@@ -144,6 +144,11 @@ def create_tray_icon(service: VirtualBoxRPC, on_exit: Callable[[], None] | None 
 
 def run_with_tray(service: VirtualBoxRPC) -> None:
     """Launches the service in a background worker thread and manages the system tray on the main thread."""
+    if not is_tray_supported():
+        logger.warning("System tray is not supported in this environment; running headless.")
+        service.run()
+        return
+
     worker = threading.Thread(target=service.run, daemon=True, name="RPCWorker")
     worker.start()
 

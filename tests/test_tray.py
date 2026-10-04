@@ -36,10 +36,24 @@ def test_is_tray_supported_missing_dependency():
         assert is_tray_supported() is False
 
 
-def test_create_tray_icon_and_callbacks():
+def test_create_tray_icon_and_callbacks(monkeypatch):
     cfg = Config()
     service = VirtualBoxRPC(cfg)
     service.status_text = "Running 1 VM"
+
+    if not is_tray_supported():
+
+        class MockIcon:
+            def __init__(self, name, icon, title=None, menu=None):
+                self.name = name
+                self.icon = icon
+                self.title = title
+                self.menu = menu
+
+            def stop(self):
+                pass
+
+        monkeypatch.setattr("pystray.Icon", MockIcon)
 
     icon = create_tray_icon(service)
     assert icon is not None
@@ -66,6 +80,17 @@ def test_create_tray_icon_and_callbacks():
         exit_item(icon)
         mock_stop.assert_called_once()
         mock_icon_stop.assert_called_once()
+
+
+def test_run_with_tray_headless_fallback(monkeypatch):
+    monkeypatch.setattr("virtualbox_rpc.tray.is_tray_supported", lambda: False)
+    cfg = Config()
+    service = VirtualBoxRPC(cfg)
+    with patch.object(service, "run") as mock_run:
+        from virtualbox_rpc.tray import run_with_tray
+
+        run_with_tray(service)
+        mock_run.assert_called_once()
 
 
 def test_open_log_file_nonexistent(tmp_path):
