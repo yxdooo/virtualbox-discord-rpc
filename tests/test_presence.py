@@ -96,3 +96,70 @@ def test_build_presence_hardware_specs_disabled():
     )
     assert payload is not None
     assert payload["state"] == "Debian (64-bit)"
+
+
+def test_build_presence_privacy_mode():
+    cfg = Config()
+    cfg.privacy.hide_vm_name = True
+    cfg.privacy.hide_hardware_specs = True
+
+    specs = {
+        "sensitive_vm": {
+            "ostype": "Debian (64-bit)",
+            "specs": "16 vCPUs • 32.0 GB RAM",
+            "state": "running",
+        }
+    }
+    payload = build_presence_payload(
+        running_vms=["sensitive_vm"],
+        vm_specs_map=specs,
+        manager_start_time=1000,
+        vm_start_times={"sensitive_vm": 2000},
+        config=cfg,
+    )
+    assert payload is not None
+    assert payload["details"] == "Running: Virtual Machine"
+    assert payload["state"] == "Debian (64-bit)"
+    assert "16 vCPUs" not in payload["state"]
+
+    # Multiple VMs with privacy
+    payload_multi = build_presence_payload(
+        running_vms=["sensitive_1", "sensitive_2"],
+        vm_specs_map={},
+        manager_start_time=1000,
+        vm_start_times={},
+        config=cfg,
+    )
+    assert payload_multi is not None
+    assert payload_multi["state"] == "Multiple instances active"
+
+
+def test_build_presence_vm_overrides():
+    from virtualbox_rpc.config import VmOverride
+
+    cfg = Config()
+    cfg.vm_overrides = {
+        "lab_vm": VmOverride(display_name="Security Sandbox", icon="arch")
+    }
+
+    specs = {
+        "lab_vm": {
+            "ostype": "Linux (64-bit)",
+            "specs": "2 vCPUs • 4.0 GB RAM",
+            "state": "running",
+        }
+    }
+    payload = build_presence_payload(
+        running_vms=["lab_vm"],
+        vm_specs_map=specs,
+        manager_start_time=1000,
+        vm_start_times={"lab_vm": 2000},
+        config=cfg,
+    )
+    assert payload is not None
+    assert payload["details"] == "Running: Security Sandbox"
+    from virtualbox_rpc.config import OS_ICONS
+
+    assert payload["small_image"] == OS_ICONS["arch"]
+
+

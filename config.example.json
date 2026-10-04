@@ -4,5 +4,15 @@
   "vboxmanage_path": null,
   "show_hardware_specs": true,
   "log_file": "vbox_rpc.log",
-  "log_level": "INFO"
+  "log_level": "INFO",
+  "privacy": {
+    "hide_vm_name": false,
+    "hide_hardware_specs": false
+  },
+  "vm_overrides": {
+    "Work-Dev-01": {
+      "display_name": "Development Server",
+      "icon": "debian"
+    }
+  }
 }

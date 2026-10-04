@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import logging
 import signal
 import sys
 import time
-from typing import Optional
 
 from pypresence import Presence
 
@@ -21,10 +22,10 @@ logger = logging.getLogger("virtualbox_rpc")
 def build_presence_payload(
     running_vms: list[str],
     vm_specs_map: dict[str, dict[str, str]],
-    manager_start_time: Optional[int],
+    manager_start_time: int | None,
     vm_start_times: dict[str, int],
     config: Config,
-) -> Optional[dict]:
+) -> dict | None:
     """Generates the Rich Presence dictionary for the given VirtualBox state."""
     if not running_vms:
         return {
@@ -33,29 +34,47 @@ def build_presence_payload(
             "start": manager_start_time or int(time.time()),
             "large_image": DEFAULT_LARGE_IMAGE_URL,
             "large_text": "Oracle VM VirtualBox",
-            "buttons": [{"label": "VirtualBox Website", "url": "https://www.virtualbox.org/"}],
+            "buttons": [
+                {"label": "VirtualBox Website", "url": "https://www.virtualbox.org/"}
+            ],
         }
 
     if len(running_vms) == 1:
-        vm_name = running_vms[0]
-        vm_start = vm_start_times.get(vm_name, int(time.time()))
-        details_text = f"Running: {vm_name}"[:128]
+        raw_name = running_vms[0]
+        vm_start = vm_start_times.get(raw_name, int(time.time()))
+
+        override = config.vm_overrides.get(raw_name)
+        display_name = override.display_name if (override and override.display_name) else raw_name
+
+        if config.privacy.hide_vm_name:
+            details_text = "Running: Virtual Machine"
+        else:
+            details_text = f"Running: {display_name}"[:128]
 
         vm_info = vm_specs_map.get(
-            vm_name, {"ostype": "Virtual Machine", "specs": "", "state": "running"}
+            raw_name, {"ostype": "Virtual Machine", "specs": "", "state": "running"}
         )
         ostype = vm_info.get("ostype", "Virtual Machine")
         specs = vm_info.get("specs", "")
         state = vm_info.get("state", "running")
 
+        include_specs = (
+            config.show_hardware_specs
+            and not config.privacy.hide_hardware_specs
+            and bool(specs)
+        )
+
         if state == "paused":
             state_text = f"Paused ({ostype})"[:128]
-        elif config.show_hardware_specs and specs:
+        elif include_specs:
             state_text = f"{ostype} ({specs})"[:128]
         else:
             state_text = ostype[:128]
 
-        icon_url = match_os_icon(vm_name, ostype)
+        if override and override.icon:
+            icon_url = OS_ICONS.get(override.icon.lower(), override.icon)
+        else:
+            icon_url = match_os_icon(raw_name, ostype)
 
         return {
             "details": details_text,
@@ -65,12 +84,24 @@ def build_presence_payload(
             "large_text": "Oracle VM VirtualBox",
             "small_image": icon_url,
             "small_text": ostype[:128],
-            "buttons": [{"label": "VirtualBox Website", "url": "https://www.virtualbox.org/"}],
+            "buttons": [
+                {"label": "VirtualBox Website", "url": "https://www.virtualbox.org/"}
+            ],
         }
 
     # Multiple active VMs
-    details_text = f"Running {len(running_vms)} Virtual Machines"[:128]
-    state_text = f"VMs: {', '.join(running_vms)}"[:128]
+    count = len(running_vms)
+    details_text = f"Running {count} Virtual Machines"[:128]
+
+    if config.privacy.hide_vm_name:
+        state_text = "Multiple instances active"
+    else:
+        names = []
+        for name in running_vms:
+            ov = config.vm_overrides.get(name)
+            names.append(ov.display_name if (ov and ov.display_name) else name)
+        state_text = f"VMs: {', '.join(names)}"[:128]
+
     start_time = min(vm_start_times.values()) if vm_start_times else int(time.time())
 
     return {
@@ -81,7 +112,9 @@ def build_presence_payload(
         "large_text": "Oracle VM VirtualBox",
         "small_image": OS_ICONS["linux"],
         "small_text": "Multiple VMs Active",
-        "buttons": [{"label": "VirtualBox Website", "url": "https://www.virtualbox.org/"}],
+        "buttons": [
+            {"label": "VirtualBox Website", "url": "https://www.virtualbox.org/"}
+        ],
     }
 
 
@@ -91,13 +124,13 @@ class VirtualBoxRPC:
     def __init__(self, config: Config):
         self.config = config
         self.vboxmanage = resolve_vboxmanage_path(config.vboxmanage_path)
-        self.rpc: Optional[Presence] = None
+        self.rpc: Presence | None = None
         self.connected = False
         self.running = False
 
-        self.manager_start_time: Optional[int] = None
+        self.manager_start_time: int | None = None
         self.vm_start_times: dict[str, int] = {}
-        self.last_state_hash: Optional[tuple[str, str]] = None
+        self.last_state_hash: tuple[str, str] | None = None
 
     def connect(self) -> bool:
         """Establishes an IPC connection with the local Discord client."""
@@ -135,7 +168,7 @@ class VirtualBoxRPC:
         self.last_state_hash = None
         logger.info("Cleared Discord presence and closed connection.")
 
-    def sync_once(self) -> Optional[dict]:
+    def sync_once(self) -> dict | None:
         """Calculates current state payload once without persisting a connection loop."""
         if not is_virtualbox_active():
             return None
