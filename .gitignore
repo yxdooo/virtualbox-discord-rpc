@@ -1,0 +1,25 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.spec
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Logs and runtime artifacts
+*.log
+
+# Editor directories
+.idea/
+.vscode/
+
+# Local configuration override (use config.example.json as template)
+config.json

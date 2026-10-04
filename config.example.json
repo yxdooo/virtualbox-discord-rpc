@@ -1,0 +1,8 @@
+{
+  "client_id": "1553096417307000954",
+  "polling_interval": 3,
+  "vboxmanage_path": null,
+  "show_hardware_specs": true,
+  "log_file": "vbox_rpc.log",
+  "log_level": "INFO"
+}
