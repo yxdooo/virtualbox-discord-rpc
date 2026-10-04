@@ -16,6 +16,10 @@ env/
 
 # Logs and runtime artifacts
 *.log
+.coverage
+.coverage.*
+.pytest_cache/
+.ruff_cache/
 
 # Editor directories
 .idea/

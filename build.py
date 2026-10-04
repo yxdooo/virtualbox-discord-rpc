@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 """Build script for compiling VirtualBox Discord RPC into a standalone executable."""
 
+import importlib.util
 import subprocess
 import sys
 from pathlib import Path
 
 
 def build():
-    try:
-        import PyInstaller
-    except ImportError:
+    if importlib.util.find_spec("PyInstaller") is None:
         print("PyInstaller is not installed. Run: pip install pyinstaller")
         sys.exit(1)
 
@@ -33,7 +32,11 @@ def build():
     result = subprocess.run(cmd, cwd=root_dir)
 
     if result.returncode == 0:
-        exe_path = root_dir / "dist" / ("VirtualBoxRPC.exe" if sys.platform == "win32" else "VirtualBoxRPC")
+        exe_path = (
+            root_dir
+            / "dist"
+            / ("VirtualBoxRPC.exe" if sys.platform == "win32" else "VirtualBoxRPC")
+        )
         print(f"Build successful. Output: {exe_path}")
     else:
         print("Build failed.")
