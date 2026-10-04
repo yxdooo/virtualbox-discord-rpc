@@ -3,6 +3,8 @@
 A high-performance Discord Rich Presence client for Oracle VM VirtualBox. It continuously tracks virtual machine lifecycles and reflects guest operating systems, resource allocation, and execution state directly in Discord.
 
 [![CI](https://github.com/yxdooo/virtualbox-discord-rpc/actions/workflows/ci.yml/badge.svg)](https://github.com/yxdooo/virtualbox-discord-rpc/actions/workflows/ci.yml)
+[![PyPI version](https://img.shields.io/pypi/v/virtualbox-discord-rpc.svg)](https://pypi.org/project/virtualbox-discord-rpc/)
+[![PyPI Downloads](https://img.shields.io/pypi/dm/virtualbox-discord-rpc.svg)](https://pypi.org/project/virtualbox-discord-rpc/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python: 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)]()
