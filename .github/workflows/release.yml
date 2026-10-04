@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   build-windows:
+    name: Build Windows Release Binary
     runs-on: windows-latest
     steps:
       - name: Checkout repository
@@ -23,16 +24,28 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pyinstaller
+          pip install -e ".[dev]"
+
+      - name: Run test suite
+        run: |
+          pytest
 
       - name: Build executable
         run: |
           python build.py
 
-      - name: Create Release
+      - name: Generate SHA-256 Checksum
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash dist/VirtualBoxRPC.exe -Algorithm SHA256).Hash
+          "$hash  VirtualBoxRPC.exe" | Out-File -Encoding ascii dist/VirtualBoxRPC.exe.sha256
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/VirtualBoxRPC.exe
+          files: |
+            dist/VirtualBoxRPC.exe
+            dist/VirtualBoxRPC.exe.sha256
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

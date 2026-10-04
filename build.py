@@ -25,6 +25,8 @@ def build():
         "--windowed",
         "--name",
         "VirtualBoxRPC",
+        "--hidden-import=pystray",
+        "--hidden-import=PIL",
         str(entrypoint),
     ]
 
