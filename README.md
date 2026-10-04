@@ -71,9 +71,31 @@ Unlike naive implementations that trigger continuous COM daemon locks, `virtualb
    VirtualBoxRPC.exe --install-startup
    ```
 
-### Method 2: From Source / PyPI Package
+### Method 2: Via Windows Package Manager (Winget)
 
-Clone the repository and install dependencies:
+Install using the Microsoft official package manager:
+
+```cmd
+winget install yxdooo.VirtualBoxRPC
+```
+
+### Method 3: Via Python Package Index (PyPI)
+
+Install globally or within your virtual environment:
+
+```bash
+pip install virtualbox-discord-rpc
+```
+
+Run directly from any terminal:
+
+```bash
+virtualbox-rpc
+```
+
+### Method 4: From Source (GitHub)
+
+Clone the repository and install dependencies in editable mode:
 
 ```bash
 git clone https://github.com/yxdooo/virtualbox-discord-rpc.git
@@ -87,13 +109,9 @@ source .venv/bin/activate
 
 pip install --upgrade pip
 pip install -e ".[tray]"
-```
-
-Run directly:
-
-```bash
 virtualbox-rpc
 ```
+
 
 ---
 
@@ -187,6 +205,47 @@ The compiled binary will be placed at `dist/VirtualBoxRPC.exe`.
 
 ---
 
+## Frequently Asked Questions (FAQ)
+
+### How do I show my VirtualBox virtual machine on Discord?
+Ensure your Discord desktop app is running, then start `virtualbox-rpc` (or run `VirtualBoxRPC.exe`). As soon as you launch any virtual machine in VirtualBox, your Discord profile status will automatically reflect the guest machine's name, operating system icon, and live timer.
+
+### Why doesn't this tool freeze or lag VirtualBox?
+Traditional tools repeatedly run `VBoxManage list runningvms`, which constantly wakes up dormant `VBoxSVC.exe` background COM daemons and causes CPU spikes or interface locks. `virtualbox-discord-rpc` first inspects user-mode GUI processes (`VirtualBox.exe`, `VirtualBoxVM.exe`, `VBoxHeadless.exe`) using low-overhead OS process tables. Telemetry queries are only dispatched when active instances exist, ensuring near-zero resource consumption (~0% CPU, <25 MB RAM).
+
+### How can I hide my VM names or host hardware specs for privacy?
+In your `config.json`, enable privacy mode:
+```json
+{
+  "privacy": {
+    "hide_vm_name": true,
+    "hide_hardware_specs": true
+  }
+}
+```
+This masks your VM name with "Virtual Machine" and hides allocated CPU/RAM while preserving the guest OS badge.
+
+### How do I start the application automatically on Windows startup?
+Run:
+```cmd
+VirtualBoxRPC.exe --install-startup
+```
+Or right-click the system tray icon in your Windows taskbar and check **Start with Windows**. To remove the autostart entry, pass `--uninstall-startup`.
+
+### Does this work when running multiple virtual machines simultaneously?
+Yes. When running two or more virtual machines concurrently, `virtualbox-discord-rpc` aggregates them and displays `Running X Virtual Machines` along with an enumerated list of guest names and the earliest start timestamp.
+
+---
+
+## Support & Community
+
+If you find this project useful, please consider giving it a **Star** on GitHub! Stars help other virtualization enthusiasts discover the tool.
+
+- Report issues or suggest enhancements: [GitHub Issues](https://github.com/yxdooo/virtualbox-discord-rpc/issues)
+- Review development guidelines: [CONTRIBUTING.md](CONTRIBUTING.md)
+
+---
+
 ## Contributing
 
 Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on code style, commit conventions, and the pull request submission process.
@@ -196,3 +255,4 @@ Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) for de
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
