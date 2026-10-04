@@ -16,18 +16,21 @@ DEFAULT_LARGE_IMAGE_URL = (
 
 OS_ICONS = {
     "kali": "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/kali-linux.png",
-    "ubuntu": "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/ubuntu.png",
-    "debian": "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/debian.png",
+    "ubuntu": "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/ubuntu-linux.png",
+    "debian": "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/debian-linux.png",
     "arch": "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/arch-linux.png",
     "fedora": "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/fedora.png",
-    "windows": "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/windows.png",
-    "centos": "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/centos.png",
-    "redhat": "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/redhat.png",
+    "windows": "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/microsoft-windows.png",
+    "centos": "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/redhat-linux.png",
+    "redhat": "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/redhat-linux.png",
     "macos": "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/apple.png",
     "mac": "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/apple.png",
     "android": "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/android.png",
-    "freebsd": "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/freebsd.png",
+    "freebsd": "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/linux.png",
     "linux": "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/linux.png",
+    "alpine": "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/alpine-linux.png",
+    "mint": "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/linux-mint.png",
+    "manjaro": "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/manjaro-linux.png",
 }
 
 

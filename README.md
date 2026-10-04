@@ -7,7 +7,12 @@ A high-performance Discord Rich Presence client for Oracle VM VirtualBox. It con
 [![Python: 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)]()
 
+<p align="center">
+  <img src="assets/preview.png" alt="VirtualBox Discord Rich Presence Preview" width="680" />
+</p>
+
 ---
+
 
 ## Overview
 
