@@ -2,10 +2,11 @@ import logging
 import signal
 import sys
 import time
-from typing import Dict, Optional, Tuple
+from typing import Optional
+
 from pypresence import Presence
 
-from .config import Config, DEFAULT_LARGE_IMAGE_URL, OS_ICONS
+from .config import DEFAULT_LARGE_IMAGE_URL, OS_ICONS, Config
 from .vbox import (
     get_running_vms,
     get_vm_specs,
@@ -15,6 +16,73 @@ from .vbox import (
 )
 
 logger = logging.getLogger("virtualbox_rpc")
+
+
+def build_presence_payload(
+    running_vms: list[str],
+    vm_specs_map: dict[str, dict[str, str]],
+    manager_start_time: Optional[int],
+    vm_start_times: dict[str, int],
+    config: Config,
+) -> Optional[dict]:
+    """Generates the Rich Presence dictionary for the given VirtualBox state."""
+    if not running_vms:
+        return {
+            "details": "VirtualBox Manager",
+            "state": "Configuring Virtual Machines",
+            "start": manager_start_time or int(time.time()),
+            "large_image": DEFAULT_LARGE_IMAGE_URL,
+            "large_text": "Oracle VM VirtualBox",
+            "buttons": [{"label": "VirtualBox Website", "url": "https://www.virtualbox.org/"}],
+        }
+
+    if len(running_vms) == 1:
+        vm_name = running_vms[0]
+        vm_start = vm_start_times.get(vm_name, int(time.time()))
+        details_text = f"Running: {vm_name}"[:128]
+
+        vm_info = vm_specs_map.get(
+            vm_name, {"ostype": "Virtual Machine", "specs": "", "state": "running"}
+        )
+        ostype = vm_info.get("ostype", "Virtual Machine")
+        specs = vm_info.get("specs", "")
+        state = vm_info.get("state", "running")
+
+        if state == "paused":
+            state_text = f"Paused ({ostype})"[:128]
+        elif config.show_hardware_specs and specs:
+            state_text = f"{ostype} ({specs})"[:128]
+        else:
+            state_text = ostype[:128]
+
+        icon_url = match_os_icon(vm_name, ostype)
+
+        return {
+            "details": details_text,
+            "state": state_text,
+            "start": vm_start,
+            "large_image": DEFAULT_LARGE_IMAGE_URL,
+            "large_text": "Oracle VM VirtualBox",
+            "small_image": icon_url,
+            "small_text": ostype[:128],
+            "buttons": [{"label": "VirtualBox Website", "url": "https://www.virtualbox.org/"}],
+        }
+
+    # Multiple active VMs
+    details_text = f"Running {len(running_vms)} Virtual Machines"[:128]
+    state_text = f"VMs: {', '.join(running_vms)}"[:128]
+    start_time = min(vm_start_times.values()) if vm_start_times else int(time.time())
+
+    return {
+        "details": details_text,
+        "state": state_text,
+        "start": start_time,
+        "large_image": DEFAULT_LARGE_IMAGE_URL,
+        "large_text": "Oracle VM VirtualBox",
+        "small_image": OS_ICONS["linux"],
+        "small_text": "Multiple VMs Active",
+        "buttons": [{"label": "VirtualBox Website", "url": "https://www.virtualbox.org/"}],
+    }
 
 
 class VirtualBoxRPC:
@@ -28,8 +96,8 @@ class VirtualBoxRPC:
         self.running = False
 
         self.manager_start_time: Optional[int] = None
-        self.vm_start_times: Dict[str, int] = {}
-        self.last_state_hash: Optional[Tuple[str, str]] = None
+        self.vm_start_times: dict[str, int] = {}
+        self.last_state_hash: Optional[tuple[str, str]] = None
 
     def connect(self) -> bool:
         """Establishes an IPC connection with the local Discord client."""
@@ -67,6 +135,20 @@ class VirtualBoxRPC:
         self.last_state_hash = None
         logger.info("Cleared Discord presence and closed connection.")
 
+    def sync_once(self) -> Optional[dict]:
+        """Calculates current state payload once without persisting a connection loop."""
+        if not is_virtualbox_active():
+            return None
+
+        running_vms = get_running_vms(self.vboxmanage)
+        vm_specs_map = {}
+        for name in running_vms:
+            vm_specs_map[name] = get_vm_specs(self.vboxmanage, name)
+
+        now = int(time.time())
+        vm_starts = {name: now for name in running_vms}
+        return build_presence_payload(running_vms, vm_specs_map, now, vm_starts, self.config)
+
     def _sync_presence(self) -> None:
         """Evaluates VirtualBox state and updates the Discord presence payload."""
         if not is_virtualbox_active():
@@ -81,94 +163,36 @@ class VirtualBoxRPC:
 
         running_vms = get_running_vms(self.vboxmanage)
 
-        if running_vms:
-            # Drop start times for stopped VMs
-            for name in list(self.vm_start_times.keys()):
-                if name not in running_vms:
-                    del self.vm_start_times[name]
+        # Cleanup stopped VMs
+        for name in list(self.vm_start_times.keys()):
+            if name not in running_vms:
+                del self.vm_start_times[name]
 
-            # Record start times for newly started VMs
-            for name in running_vms:
-                if name not in self.vm_start_times:
-                    self.vm_start_times[name] = int(time.time())
+        now = int(time.time())
+        for name in running_vms:
+            if name not in self.vm_start_times:
+                self.vm_start_times[name] = now
 
-            if len(running_vms) == 1:
-                vm_name = running_vms[0]
-                vm_start = self.vm_start_times.get(vm_name, int(time.time()))
-                details_text = f"Running: {vm_name}"[:128]
+        vm_specs_map = {}
+        for name in running_vms:
+            vm_specs_map[name] = get_vm_specs(self.vboxmanage, name)
 
-                vm_info = get_vm_specs(self.vboxmanage, vm_name)
-                ostype = vm_info["ostype"]
-                specs = vm_info["specs"]
+        payload = build_presence_payload(
+            running_vms=running_vms,
+            vm_specs_map=vm_specs_map,
+            manager_start_time=self.manager_start_time,
+            vm_start_times=self.vm_start_times,
+            config=self.config,
+        )
 
-                if self.config.show_hardware_specs and specs:
-                    state_text = f"{ostype} ({specs})"[:128]
-                else:
-                    state_text = ostype[:128]
+        if not payload:
+            return
 
-                icon_url = match_os_icon(vm_name, ostype)
-                current_hash = (details_text, state_text)
-
-                if current_hash != self.last_state_hash:
-                    self.rpc.update(
-                        details=details_text,
-                        state=state_text,
-                        start=vm_start,
-                        large_image=DEFAULT_LARGE_IMAGE_URL,
-                        large_text="Oracle VM VirtualBox",
-                        small_image=icon_url,
-                        small_text=ostype[:128],
-                        buttons=[
-                            {"label": "VirtualBox Website", "url": "https://www.virtualbox.org/"}
-                        ],
-                    )
-                    self.last_state_hash = current_hash
-                    logger.info("Presence updated: %s | %s", details_text, state_text)
-
-            else:
-                details_text = f"Running {len(running_vms)} Virtual Machines"[:128]
-                state_text = f"VMs: {', '.join(running_vms)}"[:128]
-                start_time = min(self.vm_start_times.values()) if self.vm_start_times else int(time.time())
-                current_hash = (details_text, state_text)
-
-                if current_hash != self.last_state_hash:
-                    self.rpc.update(
-                        details=details_text,
-                        state=state_text,
-                        start=start_time,
-                        large_image=DEFAULT_LARGE_IMAGE_URL,
-                        large_text="Oracle VM VirtualBox",
-                        small_image=OS_ICONS["linux"],
-                        small_text="Multiple VMs Active",
-                        buttons=[
-                            {"label": "VirtualBox Website", "url": "https://www.virtualbox.org/"}
-                        ],
-                    )
-                    self.last_state_hash = current_hash
-                    logger.info("Presence updated: %s | %s", details_text, state_text)
-
-        else:
-            # Manager window open with no running VMs
-            if self.manager_start_time is None:
-                self.manager_start_time = int(time.time())
-
-            details_text = "VirtualBox Manager"
-            state_text = "Configuring Virtual Machines"
-            current_hash = (details_text, state_text)
-
-            if current_hash != self.last_state_hash:
-                self.rpc.update(
-                    details=details_text,
-                    state=state_text,
-                    start=self.manager_start_time,
-                    large_image=DEFAULT_LARGE_IMAGE_URL,
-                    large_text="Oracle VM VirtualBox",
-                    buttons=[
-                        {"label": "VirtualBox Website", "url": "https://www.virtualbox.org/"}
-                    ],
-                )
-                self.last_state_hash = current_hash
-                logger.info("Presence updated: %s | %s", details_text, state_text)
+        current_hash = (payload.get("details", ""), payload.get("state", ""))
+        if current_hash != self.last_state_hash:
+            self.rpc.update(**payload)
+            self.last_state_hash = current_hash
+            logger.info("Presence updated: %s | %s", current_hash[0], current_hash[1])
 
     def run(self) -> None:
         """Main service loop monitoring VirtualBox state."""

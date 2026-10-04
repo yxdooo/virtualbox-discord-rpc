@@ -2,11 +2,25 @@ import os
 import shutil
 import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Optional
+
 import psutil
 
 from .config import OS_ICONS
+
+
+@dataclass
+class VmInfo:
+    """Holds metadata for an active virtual machine."""
+
+    name: str = ""
+    ostype: str = "Virtual Machine"
+    specs: str = ""
+    state: str = "running"
+    memory_mb: int = 0
+    cpus: int = 0
 
 
 def resolve_vboxmanage_path(custom_path: Optional[str] = None) -> Optional[Path]:
@@ -71,7 +85,19 @@ def is_virtualbox_active() -> bool:
     return False
 
 
-def get_running_vms(vboxmanage_path: Optional[Path]) -> List[str]:
+def parse_running_vms(raw_output: str) -> list[str]:
+    """Parses standard VBoxManage list runningvms text into a list of VM names."""
+    vms: list[str] = []
+    for line in raw_output.strip().splitlines():
+        line = line.strip()
+        if line.startswith('"'):
+            end_quote = line.find('"', 1)
+            if end_quote != -1:
+                vms.append(line[1:end_quote])
+    return vms
+
+
+def get_running_vms(vboxmanage_path: Optional[Path]) -> list[str]:
     """Queries VBoxManage for active virtual machine names."""
     if not vboxmanage_path or not vboxmanage_path.is_file():
         return []
@@ -93,22 +119,55 @@ def get_running_vms(vboxmanage_path: Optional[Path]) -> List[str]:
             encoding="utf-8",
             errors="ignore",
         )
-        vms = []
-        for line in proc.stdout.strip().splitlines():
-            line = line.strip()
-            if line.startswith('"'):
-                name = line.split('"')[1]
-                vms.append(name)
-        return vms
+        return parse_running_vms(proc.stdout)
     except Exception:
         return []
 
 
-def get_vm_specs(vboxmanage_path: Optional[Path], vm_name: str) -> Dict[str, str]:
-    """Extracts OS type, CPU cores, and memory capacity for a given VM."""
-    info = {"ostype": "Virtual Machine", "specs": ""}
+def parse_vminfo(raw_output: str, vm_name: str = "") -> VmInfo:
+    """Parses machine-readable VBoxManage showvminfo key-value output."""
+    info = VmInfo(name=vm_name)
+    cpus_str = ""
+    memory_str = ""
+
+    for line in raw_output.strip().splitlines():
+        line = line.strip()
+        if not line or "=" not in line:
+            continue
+
+        key, _, val = line.partition("=")
+        val = val.strip('"')
+
+        if key == "name" and not vm_name:
+            info.name = val
+        elif key == "ostype":
+            info.ostype = val
+        elif key == "VMState":
+            info.state = val.lower()
+        elif key == "memory":
+            try:
+                mb = int(val)
+                info.memory_mb = mb
+                memory_str = f"{round(mb / 1024, 1)} GB RAM" if mb >= 1024 else f"{mb} MB RAM"
+            except ValueError:
+                pass
+        elif key == "cpus":
+            try:
+                count = int(val)
+                info.cpus = count
+                cpus_str = f"{count} vCPU{'s' if count > 1 else ''}"
+            except ValueError:
+                pass
+
+    parts = [p for p in (cpus_str, memory_str) if p]
+    info.specs = " • ".join(parts)
+    return info
+
+
+def get_vm_specs(vboxmanage_path: Optional[Path], vm_name: str) -> dict[str, str]:
+    """Retrieves formatted VM specs and ostype via VBoxManage."""
     if not vboxmanage_path or not vboxmanage_path.is_file():
-        return info
+        return {"ostype": "Virtual Machine", "specs": "", "state": "running"}
 
     startupinfo = None
     if sys.platform == "win32":
@@ -127,28 +186,14 @@ def get_vm_specs(vboxmanage_path: Optional[Path], vm_name: str) -> Dict[str, str
             encoding="utf-8",
             errors="ignore",
         )
-
-        ostype = "Virtual Machine"
-        cpus = ""
-        memory = ""
-
-        for line in proc.stdout.strip().splitlines():
-            if line.startswith("ostype="):
-                ostype = line.split("=", 1)[1].strip('"')
-            elif line.startswith("memory="):
-                mb = int(line.split("=", 1)[1].strip('"'))
-                memory = f"{round(mb / 1024, 1)} GB RAM" if mb >= 1024 else f"{mb} MB RAM"
-            elif line.startswith("cpus="):
-                cpu_count = line.split("=", 1)[1].strip('"')
-                cpus = f"{cpu_count} vCPU{'s' if int(cpu_count) > 1 else ''}"
-
-        parts = [p for p in (cpus, memory) if p]
-        info["ostype"] = ostype
-        info["specs"] = " • ".join(parts)
+        parsed = parse_vminfo(proc.stdout, vm_name=vm_name)
+        return {
+            "ostype": parsed.ostype,
+            "specs": parsed.specs,
+            "state": parsed.state,
+        }
     except Exception:
-        pass
-
-    return info
+        return {"ostype": "Virtual Machine", "specs": "", "state": "running"}
 
 
 def match_os_icon(vm_name: str, ostype: str) -> str:

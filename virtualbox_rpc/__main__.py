@@ -65,7 +65,11 @@ def main() -> None:
     service = VirtualBoxRPC(config)
 
     if args.once:
-        service._sync_presence()
+        payload = service.sync_once()
+        if payload:
+            print(f"Current state: {payload.get('details')} | {payload.get('state')}")
+        else:
+            print("VirtualBox is not currently active.")
         sys.exit(0)
 
     service.run()

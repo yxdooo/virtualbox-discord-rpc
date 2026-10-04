@@ -6,7 +6,9 @@ from typing import Optional
 
 DEFAULT_CLIENT_ID = "1553096417307000954"
 DEFAULT_POLLING_INTERVAL = 3
-DEFAULT_LARGE_IMAGE_URL = "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/virtualbox.png"
+DEFAULT_LARGE_IMAGE_URL = (
+    "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/virtualbox.png"
+)
 
 OS_ICONS = {
     "kali": "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/kali-linux.png",
@@ -41,12 +43,14 @@ class Config:
         target_path = config_path or Path("config.json")
         if target_path.exists():
             try:
-                with open(target_path, "r", encoding="utf-8") as f:
+                with open(target_path, encoding="utf-8") as f:
                     data = json.load(f)
                     config.client_id = data.get("client_id", config.client_id)
                     config.polling_interval = data.get("polling_interval", config.polling_interval)
                     config.vboxmanage_path = data.get("vboxmanage_path", config.vboxmanage_path)
-                    config.show_hardware_specs = data.get("show_hardware_specs", config.show_hardware_specs)
+                    config.show_hardware_specs = data.get(
+                        "show_hardware_specs", config.show_hardware_specs
+                    )
                     config.log_file = data.get("log_file", config.log_file)
                     config.log_level = data.get("log_level", config.log_level)
             except Exception:
